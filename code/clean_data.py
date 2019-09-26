@@ -7,7 +7,6 @@ Created on Thu Sep 26 16:49:59 2019
 '''
 
 import os
-import numpy as np
 import pandas as pd
 
 # set which HIX fields to keep
@@ -22,13 +21,39 @@ for i, plantype in enumerate(['individual', 'small_group']):
     files = [path + f for f in os.listdir(path) if f.startswith('plans')]
     
     data = pd.concat([pd.read_csv(f, usecols=usecols) for f in files])
+    data['small_group'] = i
     datasets[i] = data
     
     print(f'{plantype} plans: {len(data)}')
 
-# clean data
-usestates = ['AK', 'CA', 'ID', 'MT', 'OR', 'WA']
+data = pd.concat(datasets)
 
-for df in datasets:
-    df.columns = map(str.lower, df.columns)
-    df.rename({'st': 'state'}, inplace=True)
+# clean data
+carriers = {'Regence BlueCross BlueShield': 'Regence BCBS',
+            'Regence BlueShield of Idaho': 'Regence BCBS',
+            'Oregon\'s Health CO-OP': 'Community',
+            'Health Republic': 'Health Republic',
+            'Health Net': 'HealthNet',
+            'Kaiser Permanente': 'Kaiser',
+            'LifeWise Health Plan': 'LifeWise',
+            'Moda Health': 'Moda',
+            'PacificSource Health Plans': 'PacificSource',
+            'Providence Health Plan': 'Providence',
+            'UnitedHealthcare': 'UnitedHealthcare'}
+
+states = ['AK', 'CA', 'ID', 'MT', 'OR', 'WA']
+
+group = ['year', 'state', 'area', 'carrier', 'metal', 'plantype', 'small_group']
+
+data.columns = map(str.lower, data.columns)
+data.rename({'st': 'state'}, axis=1, inplace=True)
+
+data = data[data.carrier.isin(carriers)]
+data = data[data.state.isin(states)]
+data.carrier = data.carrier.map(carriers)
+
+stats = ['median', 'mean', 'min', 'max', 'count', 'std']
+data = data.groupby(group).agg({'premi27': stats})
+data = data.reset_index()
+
+data.to_csv('test.csv')
