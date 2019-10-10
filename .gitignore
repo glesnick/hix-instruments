@@ -8,6 +8,7 @@
 *.xlsx
 *.pdf
 *.png
+*.pickle
 
 # no other files
 .DS_Store
