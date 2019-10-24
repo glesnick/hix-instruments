@@ -34,19 +34,10 @@ data = pd.concat(datasets)
 data.columns = map(str.lower, data.columns)
 data.rename({'st': 'state'}, axis=1, inplace=True)
 
-data['hios'] = data.planid.apply(lambda s: int(s[:5]))
+data['hios'] = data.planid.apply(lambda s: s[:14])
 
-carriers = {'Regence BlueCross BlueShield': 'Regence BCBS',
-            'Regence BlueShield of Idaho': 'Regence BCBS',
-            'Oregon\'s Health CO-OP': 'Community',
-            'Health Republic': 'Health Republic',
-            'Health Net': 'HealthNet',
-            'Kaiser Permanente': 'Kaiser',
-            'LifeWise Health Plan': 'LifeWise',
-            'Moda Health': 'Moda',
-            'PacificSource Health Plans': 'PacificSource',
-            'Providence Health Plan': 'Providence',
-            'UnitedHealthcare': 'UnitedHealthcare'}
+carriers_ = pd.read_csv('1_carrier_crosswalk.csv')
+carriers = carriers_.set_index('full_name').short_name.to_dict()
 
 group = ['year', 'state', 'area', 'carrier', 'metal', 'plantype', 'small_group']
 years = [2014, 2015, 2016]
@@ -55,8 +46,10 @@ data = data[data.carrier.isin(carriers)]
 data = data[data.year.isin(years)]
 data.carrier = data.carrier.map(carriers)
 
-stats = ['median', 'mean', 'min', 'max', 'count', 'std']
-data_collapsed = data.groupby(group).agg({'premi27': stats}).reset_index()
+#stats = ['median', 'mean', 'min', 'max', 'count', 'std']
+#data_collapsed = data.groupby(group).agg({'premi27': stats}).reset_index()
+data_collapsed = data.groupby(group).mean().reset_index()
+data_collapsed = data_collapsed[group + ['premi27']]
 
 states_pnw = ['AK', 'CA', 'ID', 'MT', 'OR', 'WA']
 data_collapsed['in_pnw'] = np.where(data_collapsed.state.isin(states_pnw), 1, 0)
@@ -70,5 +63,5 @@ for y in years_:
         if len(data_test[(data_test.year == y) & (data_test.carrier == c)]) == 0:
             print(f'{y}, {c}: No HIX data for PNW states outside Oregon.')
 
-data_collapsed.to_csv('../data/2-cleaned/hix_data_PNW.csv')
-data_collapsed.to_pickle('../data/2-cleaned/hix_data_PNW.pickle')
+data_collapsed.to_csv('../data/2-cleaned/hix_data.csv')
+data_collapsed.to_pickle('../data/2-cleaned/hix_data.pickle')
